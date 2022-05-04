@@ -1,0 +1,24 @@
+---
+title: "Pstat 131 Hw 5"
+author: "Noe Arambula"
+date: '2022-05-04'
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+  pdf_document:
+    toc: true
+---
+
+# Load Libraries
+
+```{r setup, include=FALSE}
+library(tidymodels)
+library(ISLR)
+library(ISLR2)
+library(tidyverse)
+library(discrim)
+
+tidymodels_prefer()
+```
