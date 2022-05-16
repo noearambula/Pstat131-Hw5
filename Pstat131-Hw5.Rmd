@@ -20,13 +20,17 @@ library(ISLR2)
 library(tidyverse)
 library(discrim)
 library(janitor)
+library(caret)
+library(glmnet)
+library(yardstick)
+
 tidymodels_prefer()
 ```
 
 # Set Data and Seed
 
 ```{r message=FALSE, warning=FALSE}
-Pokemon <- read_csv("Pokemon.csv")
+pokemon <- read_csv("Pokemon.csv")
 
 
 set.seed(777)
@@ -37,8 +41,10 @@ set.seed(777)
 Install and load the `janitor` package. Use its `clean_names()` function on the Pokémon data, and save the results to work with for the rest of the assignment. What happened to the data? Why do you think `clean_names()` is useful?
 
 ```{r}
-
+clean_pokemon <- clean_names(pokemon)
 ```
+
+The column/variable names of the data were cleaned up so that they are easier to use now. \# became number, everything became lowercase, and spaces were changed to *.* clean_names( ) is useful because it makes the data easier to work with by putting everything in a standard form we can reference each variable easier.
 
 # Question 2
 
@@ -50,7 +56,26 @@ For this assignment, we'll handle the rarer classes by simply filtering them out
 
 After filtering, convert `type_1` and `legendary` to factors.
 
+## Entire Data set
+
 ```{r}
+ggplot(data = clean_pokemon) +
+  geom_bar(mapping = aes(y = type_1), width = 0.7)
+```
+
+There are 18 different classes of the outcome. There are two types of Pokemon with very few pokemon which are flying type and fairy type with flying having very few ad fairy having a few more but still less than most other types.
+
+## Filtering Out The Data
+
+```{r}
+# Filter entire dataset
+filtered_pokemon <- filter(clean_pokemon, type_1 == "Bug" | type_1 == "Fire" 
+                          | type_1 == "Grass" | type_1== "Normal" | 
+                          type_1 == "Water" | type_1 == "Psychic")
+
+# Convert type_1 and legendary to factors
+filtered_pokemon$type_1 <- factor(filtered_pokemon$type_1)
+filtered_pokemon$legendary <- factor(filtered_pokemon$legendary)
 
 ```
 
@@ -60,9 +85,31 @@ Perform an initial split of the data. Stratify by the outcome variable. You can 
 
 Next, use *v*-fold cross-validation on the training set. Use 5 folds. Stratify the folds by `type_1` as well. *Hint: Look for a `strata` argument.* Why might stratifying the folds be useful?
 
+## Splitting The Data
+
 ```{r}
+set.seed(777)
+pokemon_split <- initial_split(filtered_pokemon, strata = type_1, prop = 0.8)
+
+pokemon_train <- training(pokemon_split)
+pokemon_test <- testing(pokemon_split)
+
+dim(pokemon_train)
+dim(pokemon_test)
 
 ```
+
+Each data set has approximately the right number of observations, the training data has 364 obs. which is about 80% of the full data set, which contains 458 observations. This leaves the other 20% to the testing data set that has 94/458 observations
+
+## V-Fold Cross Validation
+
+```{r}
+# Note K-fold and V-fold validation are the same thing
+
+pokemon_fold <- vfold_cv(pokemon_train, v = 5, strata = type_1)
+```
+
+Stratifying the folds might be useful because we can get a proportionate amount of each type in the data into each fold. Otherwise, since some types have more pokemon than others, the folds could misrepresent the actual data population for each type_1.
 
 # Question 4
 
@@ -73,7 +120,12 @@ Set up a recipe to predict `type_1` with `legendary`, `generation`, `sp_atk`, `a
 -   Center and scale all predictors.
 
 ```{r}
+pokemon_recipe <- recipe(type_1 ~ legendary + generation + sp_atk + attack 
+                         + speed + defense + hp + sp_def, data = pokemon_train) %>%
+  step_dummy(legendary, generation) %>%   # creates dummy variables
+  step_normalize(all_predictors())    # Centers and Scales all variables
 
+pokemon_recipe
 ```
 
 # Question 5
@@ -85,8 +137,23 @@ Set up this model and workflow. Create a regular grid for `penalty` and `mixture
 How many total models will you be fitting when you fit these models to your folded data?
 
 ```{r}
+# glmnet model
+net_spec <- multinom_reg(penalty = tune(), mixture = tune()) %>%
+  set_mode('classification') %>%  # note classification is the only option for mode
+  set_engine('glmnet')
 
+# workflow
+net_workflow <- workflow( ) %>%
+  add_recipe(pokemon_recipe) %>%
+  add_model(net_spec)
+
+# Regular grid for penalty and mixture
+grid <- grid_regular(penalty(range = c(-5, 5)), mixture(range = c(0, 1)),
+                     levels = 10)
+grid
 ```
+
+I will be fitting a total of 100 models when I fit these models to the folded data sets. I will fit 100 models to 10 different data sets.
 
 # Question 6
 
@@ -95,14 +162,37 @@ Fit the models to your folded data using `tune_grid()`.
 Use `autoplot()` on the results. What do you notice? Do larger or smaller values of `penalty` and `mixture` produce better accuracy and ROC AUC?
 
 ```{r}
+tune_res <- tune_grid(
+  net_workflow,
+  resamples = pokemon_fold, 
+  grid = grid
+)
 
+autoplot(tune_res)
 ```
 
-Question 7
+I Notice that the accuracy and ROC AUC drop significantly after about 0.01. So, smaller values of penalty and mixture produce better accuracy and ROC AUC
+
+# Question 7
+
 Use `select_best()` to choose the model that has the optimal `roc_auc`. Then use `finalize_workflow()`, `fit()`, and `augment()` to fit the model to the training set and evaluate its performance on the testing set.
 
 ```{r}
+# pick best model
+best_model <- select_best(tune_res, metric = "roc_auc")
+best_model
+```
 
+```{r}
+# Fit model to training set and evaluate performance
+net_final <- finalize_workflow(net_workflow, best_model)
+
+net_final_fit <- fit(net_final, data = pokemon_train) 
+```
+
+```{r}
+augment(net_final_fit, new_data = pokemon_test)  %>%
+  accuracy(truth = type_1, estimate = .pred_class)
 ```
 
 # Question 8
