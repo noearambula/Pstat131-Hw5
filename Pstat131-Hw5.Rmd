@@ -19,6 +19,100 @@ library(ISLR)
 library(ISLR2)
 library(tidyverse)
 library(discrim)
-
+library(janitor)
 tidymodels_prefer()
+```
+
+# Set Data and Seed
+
+```{r message=FALSE, warning=FALSE}
+Pokemon <- read_csv("Pokemon.csv")
+
+
+set.seed(777)
+```
+
+# Question 1
+
+Install and load the `janitor` package. Use its `clean_names()` function on the Pokémon data, and save the results to work with for the rest of the assignment. What happened to the data? Why do you think `clean_names()` is useful?
+
+```{r}
+
+```
+
+# Question 2
+
+Using the entire data set, create a bar chart of the outcome variable, `type_1`.
+
+How many classes of the outcome are there? Are there any Pokémon types with very few Pokémon? If so, which ones?
+
+For this assignment, we'll handle the rarer classes by simply filtering them out. Filter the entire data set to contain only Pokémon whose `type_1` is Bug, Fire, Grass, Normal, Water, or Psychic.
+
+After filtering, convert `type_1` and `legendary` to factors.
+
+```{r}
+
+```
+
+# Question 3
+
+Perform an initial split of the data. Stratify by the outcome variable. You can choose a proportion to use. Verify that your training and test sets have the desired number of observations.
+
+Next, use *v*-fold cross-validation on the training set. Use 5 folds. Stratify the folds by `type_1` as well. *Hint: Look for a `strata` argument.* Why might stratifying the folds be useful?
+
+```{r}
+
+```
+
+# Question 4
+
+Set up a recipe to predict `type_1` with `legendary`, `generation`, `sp_atk`, `attack`, `speed`, `defense`, `hp`, and `sp_def`.
+
+-   Dummy-code `legendary` and `generation`;
+
+-   Center and scale all predictors.
+
+```{r}
+
+```
+
+# Question 5
+
+We'll be fitting and tuning an elastic net, tuning `penalty` and `mixture` (use `multinom_reg` with the `glmnet` engine).
+
+Set up this model and workflow. Create a regular grid for `penalty` and `mixture` with 10 levels each; `mixture` should range from 0 to 1. For this assignment, we'll let `penalty` range from -5 to 5 (it's log-scaled).
+
+How many total models will you be fitting when you fit these models to your folded data?
+
+```{r}
+
+```
+
+# Question 6
+
+Fit the models to your folded data using `tune_grid()`.
+
+Use `autoplot()` on the results. What do you notice? Do larger or smaller values of `penalty` and `mixture` produce better accuracy and ROC AUC?
+
+```{r}
+
+```
+
+Question 7
+Use `select_best()` to choose the model that has the optimal `roc_auc`. Then use `finalize_workflow()`, `fit()`, and `augment()` to fit the model to the training set and evaluate its performance on the testing set.
+
+```{r}
+
+```
+
+# Question 8
+
+Calculate the overall ROC AUC on the testing set.
+
+Then create plots of the different ROC curves, one per level of the outcome. Also make a heat map of the confusion matrix.
+
+What do you notice? How did your model do? Which Pokemon types is the model best at predicting, and which is it worst at? Do you have any ideas why this might be?
+
+```{r}
+
 ```
