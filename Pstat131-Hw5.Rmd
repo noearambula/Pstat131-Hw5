@@ -24,6 +24,7 @@ library(caret)
 library(glmnet)
 library(yardstick)
 
+
 tidymodels_prefer()
 ```
 
@@ -153,7 +154,7 @@ grid <- grid_regular(penalty(range = c(-5, 5)), mixture(range = c(0, 1)),
 grid
 ```
 
-I will be fitting a total of 100 models when I fit these models to the folded data sets. I will fit 100 models to 10 different data sets.
+I will be fitting a total of 100 models when I fit these models to the folded data sets. I will fit 100 models to 5 different data subsets.
 
 # Question 6
 
@@ -203,6 +204,32 @@ Then create plots of the different ROC curves, one per level of the outcome. Als
 
 What do you notice? How did your model do? Which Pokemon types is the model best at predicting, and which is it worst at? Do you have any ideas why this might be?
 
+## ROC and AUC
+
 ```{r}
+# Calculate overall ROC AUC
+augment(net_final_fit, new_data = pokemon_test) %>%
+  roc_auc(type_1, .pred_Fire, .pred_Bug, .pred_Grass, .pred_Normal,
+            .pred_Water, .pred_Psychic)
+```
+
+```{r}
+# PLot ROC curve
+augment(net_final_fit, new_data = pokemon_test) %>%
+  roc_curve(type_1, .pred_Fire, .pred_Bug, .pred_Grass, .pred_Normal,
+            .pred_Water, .pred_Psychic) %>%
+  autoplot()
 
 ```
+
+## Confusion Matrix
+
+```{r}
+augment(net_final_fit, new_data = pokemon_test) %>%
+  conf_mat(truth = type_1, estimate = .pred_class) %>% 
+  autoplot(type = "heatmap")
+```
+
+I noticed that the ROC curves and confusion matrix varies vastly from type to type. Overall, the model was not great at predicting types. The model did not perform very well.
+
+The model best predicts normal type pokemon the best as is shown in the ROC curve and since it has the best truths predicted. Water types are also predicted well according to the confusion matrix however, the ROC curve is just about as good as chance. I believe the model might be best at predicting normal type pokemon because that was the type with the most pokemon in it in the data. The model was worst at predicting fire and grass types looking at the confusion matrix. Although, the ROC curve for grass was good. I do not have any good explanation as to why this might be other than that there were less observations for fire and grass.
