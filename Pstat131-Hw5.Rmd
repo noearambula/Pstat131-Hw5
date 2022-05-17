@@ -3,17 +3,17 @@ title: "Pstat 131 Hw 5"
 author: "Noe Arambula"
 date: '2022-05-04'
 output:
+  pdf_document:
+    toc: true
   html_document:
     toc: true
     toc_float: true
     code_folding: show
-  pdf_document:
-    toc: true
 ---
 
 # Load Libraries
 
-```{r setup, include=FALSE}
+```{r message=FALSE, warning=FALSE}
 library(tidymodels)
 library(ISLR)
 library(ISLR2)
